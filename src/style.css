@@ -2,6 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: system-ui, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Prevent pull-to-refresh on mobile */
+  html, body {
+    overscroll-behavior-y: none;
+    touch-action: pan-x pan-y;
+  }
+}
+
+@layer utilities {
+  /* Glass effect */
+  .glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 bg-clip-text text-transparent;
+  }
+
+  /* Safe area padding for iOS */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom selection */
+::selection {
+  @apply bg-purple-500/30 text-white;
+}
+
+/* Input placeholder styling */
+::placeholder {
+  @apply text-slate-500;
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  @apply outline-none ring-2 ring-purple-500/50;
+}
+
+/* Disable text selection on UI elements */
+button, nav, .no-select {
+  user-select: none;
 }
