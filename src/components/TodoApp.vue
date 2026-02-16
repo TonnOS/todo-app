@@ -117,44 +117,46 @@
 
     <!-- Main Content -->
     <main class="relative px-5 pb-32 max-w-lg mx-auto min-h-[calc(100vh-200px)]">
-      <!-- View Toggle (Tasks/Archive) -->
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2">
+      <!-- Dynamic View Content -->
+      <div v-if="activeNav === 0">
+        <!-- View Toggle (Tasks/Archive) -->
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <button 
+              @click="currentView = 'tasks'"
+              :class="['px-4 py-2 rounded-xl text-sm font-medium transition-all', 
+                currentView === 'tasks' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : themeClasses.viewInactive]"
+            >
+              Tasks
+            </button>
+            <button 
+              @click="currentView = 'archive'"
+              :class="['px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2', 
+                currentView === 'archive' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : themeClasses.viewInactive]"
+            >
+              Archive
+              <span v-if="archivedTodos.length > 0" :class="['text-xs px-2 py-0.5 rounded-full', themeClasses.archiveCount]">
+                {{ archivedTodos.length }}
+              </span>
+            </button>
+          </div>
+          
+          <!-- Clear Archive Button -->
           <button 
-            @click="currentView = 'tasks'"
-            :class="['px-4 py-2 rounded-xl text-sm font-medium transition-all', 
-              currentView === 'tasks' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : themeClasses.viewInactive]"
+            v-if="currentView === 'archive' && archivedTodos.length > 0"
+            @click="clearArchive"
+            class="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
           >
-            Tasks
-          </button>
-          <button 
-            @click="currentView = 'archive'"
-            :class="['px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2', 
-              currentView === 'archive' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : themeClasses.viewInactive]"
-          >
-            Archive
-            <span v-if="archivedTodos.length > 0" :class="['text-xs px-2 py-0.5 rounded-full', themeClasses.archiveCount]">
-              {{ archivedTodos.length }}
-            </span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Clear All
           </button>
         </div>
-        
-        <!-- Clear Archive Button -->
-        <button 
-          v-if="currentView === 'archive' && archivedTodos.length > 0"
-          @click="clearArchive"
-          class="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-          Clear All
-        </button>
-      </div>
 
-      <!-- Tasks View -->
-      <div v-if="currentView === 'tasks'">
-        <!-- Draggable Todo List -->
+        <!-- Tasks View -->
+        <div v-if="currentView === 'tasks'">
+          <!-- Draggable Todo List -->
         <draggable 
           v-model="filteredTodos"
           item-key="id"
@@ -311,8 +313,40 @@
         </transition>
       </div>
 
+      <!-- Plan View -->
+      <div v-else-if="activeNav === 1">
+        <PlanView 
+          :todos="todos" 
+          :isDark="isDark" 
+          :themeClasses="themeClasses" 
+          @toggle-todo="toggleTodo"
+        />
+      </div>
+
+      <!-- Focus View -->
+      <div v-else-if="activeNav === 2">
+        <FocusView 
+          :todos="todos" 
+          :isDark="isDark" 
+          @complete-task="handleFocusTaskComplete"
+        />
+      </div>
+
+      <!-- Settings View -->
+      <div v-else-if="activeNav === 3">
+        <SettingsView 
+          :isDark="isDark" 
+          :themeClasses="themeClasses" 
+          :todos="todos"
+          :archivedTodos="archivedTodos"
+          @toggle-theme="toggleTheme" 
+          @clear-data="handleClearData"
+          @import-data="handleImportData"
+        />
+      </div>
+
       <!-- Pulsing FAB -->
-      <div v-if="currentView === 'tasks'" class="fixed bottom-24 right-6 z-40">
+      <div v-if="activeNav === 0 && currentView === 'tasks'" class="fixed bottom-24 right-6 z-40">
         <div class="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 animate-ping opacity-20"></div>
         <div class="absolute inset-[-4px] rounded-full bg-gradient-to-br from-purple-500 to-pink-500 animate-pulse opacity-30"></div>
         
@@ -430,9 +464,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, defineAsyncComponent } from 'vue'
 import confetti from 'canvas-confetti'
 import draggable from 'vuedraggable'
+
+// Async imports for views
+const PlanView = defineAsyncComponent(() => import('../views/PlanView.vue'))
+const FocusView = defineAsyncComponent(() => import('../views/FocusView.vue'))
+const SettingsView = defineAsyncComponent(() => import('../views/SettingsView.vue'))
 
 // Theme Management
 const isDark = ref(true)
@@ -809,6 +848,26 @@ const clearArchive = () => {
 }
 
 const onDragEnd = () => {
+  saveData()
+}
+
+const handleFocusTaskComplete = (taskId) => {
+  const todo = todos.value.find(t => t.id === taskId)
+  if (todo) {
+    toggleTodo(todo)
+  }
+}
+
+const handleClearData = () => {
+  todos.value = []
+  archivedTodos.value = []
+  saveData()
+  playSound('delete')
+}
+
+const handleImportData = (data) => {
+  todos.value = data.todos || []
+  archivedTodos.value = data.archivedTodos || []
   saveData()
 }
 
