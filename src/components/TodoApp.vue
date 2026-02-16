@@ -157,7 +157,7 @@
         <!-- Tasks View -->
         <div v-if="currentView === 'tasks'">
           <!-- Draggable Todo List -->
-        <draggable 
+          <draggable 
           v-model="filteredTodos"
           item-key="id"
           handle=".drag-handle"
